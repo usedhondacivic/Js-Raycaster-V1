@@ -84,37 +84,40 @@ var gameMap = {
         if(Math.abs(dx) > Math.abs(dy)){
             //find direction, use floor / ceil to get first intersection.
             if(dx > 0){
-                firstHit.x = Math.ceil(ray.origin.x);
-                var px = firstHit.x - ray.origin.x;
-                firstHit.y = Math.tan(angle) * px + ray.origin.x;
+                firstHit.x = Math.ceil(ray.origin.x) - ray.origin.x;
+                var px = firstHit.x;
+                firstHit.y = Math.tan(angle) * px;
                 xa = 1;
                 ya = Math.tan(angle) * xa;
             }else{
-                firstHit.x = Math.floor(ray.origin.x);
-                var px = firstHit.x - ray.origin.x;
-                firstHit.y = Math.tan(angle) * px + ray.origin.x;
+                firstHit.x = Math.floor(ray.origin.x) - ray.origin.x;
+                var px = firstHit.x;
+                firstHit.y = Math.tan(angle) * px;
                 xa = -1;
                 ya = Math.tan(angle) * xa;
             }
         }else{
             if(dy > 0){
-                firstHit.y = Math.ceil(ray.origin.y);
-                var py = firstHit.y - ray.origin.y;
+                firstHit.y = Math.ceil(ray.origin.y) - ray.origin.y;
+                var py = firstHit.y;
                 firstHit.x = py / Math.tan(angle);
                 ya = 1;
                 xa = ya / Math.tan(angle);
             }else{
-                firstHit.y = Math.floor(ray.origin.y);
-                var py = firstHit.y - ray.origin.y;
+                firstHit.y = Math.floor(ray.origin.y) - ray.origin.y;
+                var py = firstHit.y;
                 firstHit.x = py / Math.tan(angle);
                 ya = -1;
                 xa = ya / Math.tan(angle);
             }
         }
 
-        var hit = firstHit;
+        var intersection = firstHit;
+        var hit = null;
 
-        while(hit.length <  )
+        while(hit.length <  ray.direction.length){
+            
+        }
     }
 }
 

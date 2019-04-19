@@ -34,6 +34,10 @@ var Vector = function(x ,y){
         }
     }
 
+    this.getAngle = function(){
+        return atan2(this.y, this.x);
+    }
+
     this.length = function(){
         return Math.sqrt(Math.pow(this.x, 2), Math.pow(this.y, 2));
     }
@@ -71,16 +75,46 @@ var gameMap = {
         var dx = ray.direction.x;
         var dy = ray.direction.y;
 
+        var xa;
+        var ya;
+
+        var firstHit = new Vector(0, 0);
+        var angle = ray.direction.getAngle();
+
         if(Math.abs(dx) > Math.abs(dy)){
             //find direction, use floor / ceil to get first intersection.
             if(dx > 0){
-
+                firstHit.x = Math.ceil(ray.origin.x);
+                var px = firstHit.x - ray.origin.x;
+                firstHit.y = Math.tan(angle) * px + ray.origin.x;
+                xa = 1;
+                ya = Math.tan(angle) * xa;
             }else{
-
+                firstHit.x = Math.floor(ray.origin.x);
+                var px = firstHit.x - ray.origin.x;
+                firstHit.y = Math.tan(angle) * px + ray.origin.x;
+                xa = -1;
+                ya = Math.tan(angle) * xa;
             }
         }else{
-
+            if(dy > 0){
+                firstHit.y = Math.ceil(ray.origin.y);
+                var py = firstHit.y - ray.origin.y;
+                firstHit.x = py / Math.tan(angle);
+                ya = 1;
+                xa = ya / Math.tan(angle);
+            }else{
+                firstHit.y = Math.floor(ray.origin.y);
+                var py = firstHit.y - ray.origin.y;
+                firstHit.x = py / Math.tan(angle);
+                ya = -1;
+                xa = ya / Math.tan(angle);
+            }
         }
+
+        var hit = firstHit;
+
+        while(hit.length <  )
     }
 }
 

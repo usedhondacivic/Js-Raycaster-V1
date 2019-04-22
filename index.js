@@ -65,16 +65,16 @@ var Ray = function(origin, direction){
 
 var gameMap = {
     data : [
-        "1100000011",
-        "1200000021",
-        "0000110000",
-        "0000000000",
-        "0010000100",
-        "00100S0100",
-        "0000000000",
-        "0000110000",
-        "1200000021",
-        "1100000011",
+        "11      22",
+        "1L      L2",
+        "    66    ",
+        "          ",
+        "  5    5  ",
+        "  5  S 5  ",
+        "          ",
+        "    66    ",
+        "4L      L3",
+        "44      33",
     ],
 
     miniMapSize : 10,
@@ -88,15 +88,32 @@ var gameMap = {
                 }
             }
         }
+
+        this.colors = {
+            "1" : color(220, 220, 220),
+            "2" : color(220, 0, 0),
+            "3" : color(0, 220, 0),
+            "4" : color(0, 0, 220),
+            "5" : color(0, 220, 220),
+            "6" : color(220, 220, 0),
+            floorStart : color(240, 240, 240),
+            floorEnd : color(150, 150, 150),
+            ceilingStart : color(150, 200, 200),
+            ceilingEnd : color(0, 0, 75)
+        };
     },
 
     drawMiniMap : function(){
         var blockSize = Math.ceil((width / this.miniMapSize) / (this.data.length > this.data[0].length ? this.data.length : this.data[0].length));
+
+        fill(255);
+        rect(0, 0, this.data.length * blockSize, this.data[0].length * blockSize);
+
         for(var y = 0; y < this.data.length; y++){
             for(var x = 0; x < this.data[y].length; x++){
-                if(this.data[y][x] === "1"){
-                    fill(50, 50, 50);
-                }else if(this.data[y][x] === "2"){
+                if(parseInt(this.data[y][x])){
+                    fill(this.colors[this.data[y][x]]);
+                }else if(this.data[y][x] === "L"){
                     fill(255, 255, 0);
                 }else{
                     continue;
@@ -174,11 +191,12 @@ var gameMap = {
         //Horizontal intersections
         while(intersection.length() < ray.direction.length()){
             var mapX = xa > 0 ? player.pos.x + intersection.x : player.pos.x + intersection.x - 1;
+            mapX = Math.round(mapX);
             var mapY = Math.floor(player.pos.y + intersection.y);
             if(mapY >= 0 && mapY < this.data.length){
                 if(mapX >= 0 && mapX < this.data[mapY].length){
                     var char = this.data[mapY][mapX];
-                    if(char === "1"){
+                    if(parseInt(char)){
                         hit = {
                             char: char,
                             distance: intersection.length(),
@@ -204,10 +222,11 @@ var gameMap = {
             }
             var mapX = Math.floor(player.pos.x + intersection.x);
             var mapY = yb > 0 ? player.pos.y + intersection.y : player.pos.y + intersection.y - 1;
+            mapY = Math.round(mapY);
             if(mapY >= 0 && mapY < this.data.length){
                 if(mapX >= 0 && mapX < this.data[mapY].length){
                     var char = this.data[mapY][mapX];
-                    if(char === "1"){
+                    if(parseInt(char)){
                         hit = {
                             char: char,
                             distance: intersection.length(),
@@ -223,7 +242,7 @@ var gameMap = {
         }
 
         if(hit != null){
-            point((player.pos.x + hit.vector.x) * blockSize, (player.pos.y + hit.vector.y) * blockSize);
+            //point((player.pos.x + hit.vector.x) * blockSize, (player.pos.y + hit.vector.y) * blockSize);
         }
 
         noStroke();
@@ -237,14 +256,17 @@ var player = {
     size : 0.1,
     direction : new Vector(1,1),
     speed : 0,
-    maxSpeed : 0.1,
-    turnSpeed : Math.PI / 50,
+    maxSpeed : 0.05,
+    turnSpeed : Math.PI / 100,
 
     screenWidth : 320,
     screenHeight : 240,
     focalLength : 560,
+    fov : Math.PI / 3,
     renderRange : 20,
-    scale : 100,
+    scale : 4,
+
+    colorMultiplier : 5,
 
     update : function(){
         this.move();
@@ -282,8 +304,18 @@ var player = {
     },
 
     render : function(){
+        for(var y = 0; y < this.screenHeight / 2; y += this.scale * 2){
+            
+        }
+
+        for(var y = this.screenHeight; y > this.screenHeight / 2; y -= this.scale * 2){
+            var color = lerpColor(gameMap.colors.floorEnd, gameMap.colors.floorStart, (y -this.screenHeight / 2) / (this.screenHeight /2));
+            fill(color);
+            rect(0, y, this.screenWidth, -this.scale * 2);
+        }
+
         for(var x = 0; x < this.screenWidth; x += this.scale){
-            var relativeX = x - this.screenWidth / 2;
+            var relativeX = -(x - this.screenWidth / 2);
             var rayDirection = new Vector(relativeX, this.focalLength);
             var rayAngle = rayDirection.getAngle() + this.direction.getAngle() - Math.PI / 2;
             rayDirection = new Vector(Math.cos(rayAngle), Math.sin(rayAngle));
@@ -293,15 +325,26 @@ var player = {
             if(rayCollision === null){
                 continue;
             }
-            var beta = this.direction.getAngle() - rayCollision.getAngle(); //angle of hit relative to viewing angle
-            var distance = rayCollision.distance + Math.cos(beta);
+            var beta = this.direction.getAngle() - rayCollision.vector.getAngle(); //angle of hit relative to viewing angle
+            var distance = rayCollision.distance * Math.cos(beta); //Distance adjusted to remove fisheye effect
+
+            var wallHeight = (1 / distance) * this.focalLength;
+
+            noStroke();
+            var color = this.getColor(gameMap.colors[rayCollision.char], distance);
+            fill(color);
+            rect(x, this.screenHeight / 2 - wallHeight / 2, this.scale, wallHeight);
         }
+    },
+
+    getColor : function(c, distance){
+        return color(Math.min(c.levels[0] / distance * this.colorMultiplier, c.levels[0]), Math.min(c.levels[1] / distance * this.colorMultiplier, c.levels[1]), Math.min(c.levels[2] / distance * this.colorMultiplier, c.levels[2]));
     },
 
     collision : function(dx, dy){
         for(var y = 0; y < gameMap.data.length; y++){
             for(var x = 0; x < gameMap.data[y].length; x++){
-                if(gameMap.data[y][x] !== "1"){
+                if(!parseInt(gameMap.data[y][x])){
                     continue;
                 }
                 if(this.pos.x > x - this.size && this.pos.x < x + 1 + this.size && this.pos.y > y -this.size && this.pos.y < y + 1 + this.size){
@@ -324,13 +367,13 @@ var player = {
     setScreen : function(width, height){
         this.screenWidth = width;
         this.screenHeight = height;
+        this.focalLength = (this.screenWidth / 2) / Math.tan(this.fov / 2);
     }
 }
 
 function setup(){
     createCanvas(document.body.clientWidth, window.innerHeight);
     player.setScreen(document.body.clientWidth, window.innerHeight);
-    noStroke();
     gameMap.setup();
 }
 
@@ -341,6 +384,6 @@ function windowResized() {
 
 function draw(){
     background(255, 255 ,255);
-    gameMap.drawMiniMap();
     player.update();
+    gameMap.drawMiniMap();
 }

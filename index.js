@@ -90,13 +90,13 @@ var gameMap = {
         }
 
         this.colors = {
-            "1" : color(220, 220, 220),
-            "2" : color(220, 0, 0),
-            "3" : color(0, 220, 0),
-            "4" : color(0, 0, 220),
-            "5" : color(0, 220, 220),
-            "6" : color(220, 220, 0),
-            floorStart : color(240, 240, 240),
+            "1" : color(230, 230, 230),
+            "2" : color(255, 0, 0),
+            "3" : color(0, 255, 0),
+            "4" : color(0, 0, 255),
+            "5" : color(0, 255, 255),
+            "6" : color(255, 255, 0),
+            floorStart : color(255, 255, 255),
             floorEnd : color(150, 150, 150),
             ceilingStart : color(150, 200, 200),
             ceilingEnd : color(0, 0, 75)
@@ -106,7 +106,7 @@ var gameMap = {
     drawMiniMap : function(){
         var blockSize = Math.ceil((width / this.miniMapSize) / (this.data.length > this.data[0].length ? this.data.length : this.data[0].length));
 
-        fill(255);
+        fill(0, 0, 0, 50);
         rect(0, 0, this.data.length * blockSize, this.data[0].length * blockSize);
 
         for(var y = 0; y < this.data.length; y++){
@@ -231,8 +231,8 @@ var gameMap = {
                             char: char,
                             distance: intersection.length(),
                             vector: intersection,
-                            x: xa,
-                            y: ya
+                            x: xb,
+                            y: yb
                         };
                         break;
                     }
@@ -264,9 +264,9 @@ var player = {
     focalLength : 560,
     fov : Math.PI / 3,
     renderRange : 20,
-    scale : 4,
+    scale : 2,
 
-    colorMultiplier : 5,
+    colorMultiplier : 10,
 
     update : function(){
         this.move();
@@ -308,10 +308,10 @@ var player = {
             
         }
 
-        for(var y = this.screenHeight; y > this.screenHeight / 2; y -= this.scale * 2){
-            var color = lerpColor(gameMap.colors.floorEnd, gameMap.colors.floorStart, (y -this.screenHeight / 2) / (this.screenHeight /2));
+        for(var y = this.screenHeight * 0.75; y > this.screenHeight / 2; y -= this.scale * 2){
+            var color = lerpColor(gameMap.colors.floorEnd, gameMap.colors.floorStart, (y - this.screenHeight / 2) / (this.screenHeight * 0.25));
             fill(color);
-            rect(0, y, this.screenWidth, -this.scale * 2);
+            rect(0, Math.round(y), this.screenWidth, -this.scale * 2);
         }
 
         for(var x = 0; x < this.screenWidth; x += this.scale){
@@ -331,14 +331,24 @@ var player = {
             var wallHeight = (1 / distance) * this.focalLength;
 
             noStroke();
-            var color = this.getColor(gameMap.colors[rayCollision.char], distance);
+            var color = this.getColor(gameMap.colors[rayCollision.char], distance, rayCollision.x);
             fill(color);
             rect(x, this.screenHeight / 2 - wallHeight / 2, this.scale, wallHeight);
         }
     },
 
-    getColor : function(c, distance){
-        return color(Math.min(c.levels[0] / distance * this.colorMultiplier, c.levels[0]), Math.min(c.levels[1] / distance * this.colorMultiplier, c.levels[1]), Math.min(c.levels[2] / distance * this.colorMultiplier, c.levels[2]));
+    getColor : function(c, distance, dx){
+        var shadow;
+        if(Math.abs(dx) === 1){
+            if(dx > 0){
+                shadow = 1;
+            }else{
+                shadow = 0.7;
+            }
+        }else{
+            shadow = 0.85;
+        }
+        return color(Math.min(c.levels[0] / distance * this.colorMultiplier * shadow, c.levels[0] * shadow), Math.min(c.levels[1] / distance * this.colorMultiplier * shadow, c.levels[1] * shadow), Math.min(c.levels[2] / distance * this.colorMultiplier * shadow, c.levels[2] * shadow));
     },
 
     collision : function(dx, dy){

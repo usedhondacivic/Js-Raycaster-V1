@@ -1,5 +1,3 @@
-//https://permadi.com/1996/05/ray-casting-tutorial-7/
-
 var keys=[];
 keyPressed=function(){keys[keyCode] = true;};
 keyReleased=function(){keys[keyCode] = false;};
@@ -65,16 +63,16 @@ var Ray = function(origin, direction){
 
 var gameMap = {
     data : [
-        "11      22",
-        "1L      L2",
-        "    66    ",
-        "          ",
-        "  5    5  ",
-        "  5  S 5  ",
-        "          ",
-        "    66    ",
-        "4L      L3",
-        "44      33",
+        "11      22          ",
+        "1L      L2     1 1 1",
+        "    66          2 2 ",
+        "               3 3 3",
+        "  5    5        4 4 ",
+        "  5  S 5       5 5 5",
+        "                6 6 ",
+        "    66         1 1 1",
+        "4L      L3      1 1",
+        "44      33     1 1 1",
     ],
 
     miniMapSize : 10,

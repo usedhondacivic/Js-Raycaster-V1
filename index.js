@@ -1,67 +1,86 @@
+//Store user input for future use
 var keys=[];
 keyPressed=function(){keys[keyCode] = true;};
 keyReleased=function(){keys[keyCode] = false;};
 
+//Js keycodes for the arrow buttons
 var LEFT_ARROW = 37;
 var RIGHT_ARROW = 39;
 var UP_ARROW = 38;
 var DOWN_ARROW = 40;
 
+//Vector constructor including the math functions needed for raytracing
 var Vector = function(x ,y){
+    //X and Y components of the vector
     this.x = x;
     this.y = y;
 
+    //Convert the vector to a unit vector with the same direction
     this.normalize = function(){
         var angle = Math.atan2(this.y, this.x);
         this.x = Math.cos(angle);
         this.y = Math.sin(angle);
     }
 
+    //Add two vectors or a vector and a scalar
     this.add = function(other){
         if(!other.x){
+            //Scalar
             this.x += other;
             this.y += other;
         }else{
+            //Vector
             this.x += other.x;
             this.y += other.y;
         }
     }
 
+    //Subtract two vectors or a vector and a scalar
     this.subtract = function(other){
         if(!other.x){
+            //Scalar
             this.x -= other;
             this.y -= other;
         }else{
+            //Vector
             this.x -= other.x;
             this.y -= other.y;
         }
     }
 
+    //Multiply two vectors or a vector and a scalar
     this.mult = function(other){
         if(!other.x){
+            //Scalar
             this.x *= other;
             this.y *= other;
         }else{
+            //Vector
             this.x *= other.x;
             this.y *= other.y;
         }
     }
 
+    //Get the angle of the vector in radians
     this.getAngle = function(){
         return Math.atan2(this.y, this.x);
     }
 
+    //Get the length (magnitude) of the vector
     this.length = function(){
         return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
     }
 }
 
+//Ray constructor. A ray is just two vectors: a position vector and a direction vector
 var Ray = function(origin, direction){
     this.origin = origin;
     this.direction = direction;
 }
 
+//Globally accessable object for storing all the game data
 var gameMap = {
+    //String representation of the game world
     data : [
         "11      22          ",
         "1L      L2     1 1 1",
@@ -71,22 +90,28 @@ var gameMap = {
         "  5  S 5       5 5 5",
         "                6 6 ",
         "    66         1 1 1",
-        "4L      L3      1 1",
+        "4L      L3      1 1 ",
         "44      33     1 1 1",
     ],
 
+    //Percentage of the smallest screen dimention for the minimap to be
     miniMapSize : 10,
 
+    //Setup the game. Set the player to spawn and add game colors to the colors object for later lookup
+    //Note: you can't define this.colors explicitly in the object because P5 objects are only availible in the setup or draw functions
     setup : function(){
+        //Loop through the map data looking for the spawn point character
         for(var y = 0; y < this.data.length; y++){
             for(var x = 0; x < this.data[y].length; x++){
                 if(this.data[y][x] === "S"){
+                    //Move the player to the spawn point
                     player.pos.x = x;
                     player.pos.y = y;
                 }
             }
         }
 
+        //Wall colors + floor gradient colors
         this.colors = {
             "1" : color(230, 230, 230),
             "2" : color(255, 0, 0),
@@ -96,66 +121,89 @@ var gameMap = {
             "6" : color(255, 255, 0),
             floorStart : color(255, 255, 255),
             floorEnd : color(150, 150, 150),
-            ceilingStart : color(150, 200, 200),
-            ceilingEnd : color(0, 0, 75)
         };
     },
 
+    //Render the minimap
     drawMiniMap : function(){
+        //Unit size for the mini map, based on the mini map size and size of the map
         var blockSize = Math.ceil((width / this.miniMapSize) / (this.data.length > this.data[0].length ? this.data.length : this.data[0].length));
 
+        //Slightly transparent background for the map
         fill(0, 0, 0, 50);
-        rect(0, 0, this.data.length * blockSize, this.data[0].length * blockSize);
+        rect(0, 0, this.data[0].length * blockSize, this.data.length * blockSize);
 
+        //Loop through the map and draw walls accordingly
         for(var y = 0; y < this.data.length; y++){
             for(var x = 0; x < this.data[y].length; x++){
+                //If the map space is a number
                 if(parseInt(this.data[y][x])){
+                    //Get the relevant color from the color object, and set that as the fill
                     fill(this.colors[this.data[y][x]]);
-                }else if(this.data[y][x] === "L"){
-                    fill(255, 255, 0);
                 }else{
+                    //If the map space isn't a number, then it isn't a wall and we don't draw it
                     continue;
                 }
                 
+                //Draw the wall as a rectangle
                 rect(x * blockSize, y * blockSize, blockSize, blockSize);
             }
         }
 
+        //Draw the player
         push();
+            //Push the matrix. This makes is so only the code within push() and pop() is effected by the matrix transformations performed (translate, rotate)
             fill(255, 0 , 0);
+            //Draw the rectangles from the center, better for rotation
             rectMode(CENTER);
+            //Move the matrix to players location relative to minimap scale
             translate(player.pos.x * blockSize, player.pos.y * blockSize);
+            //Rotatie the matrix to the players direction
             rotate(player.direction.getAngle());
+            //Draw a rectangle at the matrix origin (players minimap position due to the translate)
             rect(0, 0, blockSize / 2, blockSize / 2);
+            //Draw a direction indicator
             strokeWeight(2);
             stroke(255, 0, 0);
             line(0, 0, blockSize / 2, 0);
-            noStroke();
+            //Reset drawing settings
+            noStroke(); 
+            rectMode(CORNER);
+            //Pop the matrix
         pop();
     },
 
+    //Find walls hit by ray cast into the virtual space
     getRayCollision : function(ray){
-        //Digital differential analyzer
+        //Note: This algorithm is my implimentation of a digital differential analyzer (DDA). A DDA calculates the intersections of a line and a grid. It is commonly used in graphics the determine which pixels to turn on, because pixels are on a grid
+        //I'm using it to find where the rays hit walls, because the walls are generated on a grid
+
+        //Ray direction deltas
         var dx = ray.direction.x;
         var dy = ray.direction.y;
 
+        //Horizontal offsets
         var xa;
         var ya;
 
+        //Vertical offsets
         var xb;
         var yb;
 
-        var hFirstHit = new Vector(0, 0);
-        var vFirstHit = new Vector(0, 0);
+        //First grid intersections
+        var hFirstHit = new Vector(0, 0); //First intersection with a whole number x value
+        var vFirstHit = new Vector(0, 0); //First intersection with a whole number y value
+
+        //Angle of the ray
         var angle = ray.direction.getAngle();
 
-        if(dx > 0){
+        if(dx > 0){ //Ray is moving right
             hFirstHit.x = Math.ceil(ray.origin.x) - ray.origin.x;
             var px = hFirstHit.x;
             hFirstHit.y = Math.tan(angle) * px;
             xa = 1;
             ya = Math.tan(angle) * xa;
-        }else{
+        }else if(dx < 0){ //Ray is moving left
             hFirstHit.x = Math.floor(ray.origin.x) - ray.origin.x;
             var px = hFirstHit.x;
             hFirstHit.y = Math.tan(angle) * px;
@@ -163,13 +211,13 @@ var gameMap = {
             ya = Math.tan(angle) * xa;
         }
 
-        if(dy > 0){
+        if(dy > 0){ //Ray is moving down (Coordinate system in P5 has y increasing as you go down the screen, and the origin in the top left)
             vFirstHit.y = Math.ceil(ray.origin.y) - ray.origin.y;
             var py = vFirstHit.y;
             vFirstHit.x = py / Math.tan(angle);
             yb = 1;
             xb = yb / Math.tan(angle);
-        }else{
+        }else{ //Ray is moving up
             vFirstHit.y = Math.floor(ray.origin.y) - ray.origin.y;
             var py = vFirstHit.y;
             vFirstHit.x = py / Math.tan(angle);
@@ -187,26 +235,28 @@ var gameMap = {
         stroke(0, 255, 0);
 
         //Horizontal intersections
-        while(intersection.length() < ray.direction.length()){
-            var mapX = xa > 0 ? player.pos.x + intersection.x : player.pos.x + intersection.x - 1;
-            mapX = Math.round(mapX);
-            var mapY = Math.floor(player.pos.y + intersection.y);
-            if(mapY >= 0 && mapY < this.data.length){
-                if(mapX >= 0 && mapX < this.data[mapY].length){
-                    var char = this.data[mapY][mapX];
-                    if(parseInt(char)){
-                        hit = {
-                            char: char,
-                            distance: intersection.length(),
-                            vector: intersection,
-                            x: xa,
-                            y: ya
-                        };
-                        break;
+        if(Math.floor(ray.origin.x) === Math.floor(ray.origin.x + ray.direction.x)){ //The ray never crosses a horizontal gridline, don't need to check
+            while(intersection.length() < ray.direction.length()){ //While we're still checking within the rendering range
+                var mapX = xa > 0 ? player.pos.x + intersection.x : player.pos.x + intersection.x - 1; //Find the x coord of grid box hit
+                mapX = Math.round(mapX); //Round so to not throw an error when referencing the array
+                var mapY = Math.floor(player.pos.y + intersection.y); //Find the y coord of grid box hit
+                if(mapY >= 0 && mapY < this.data.length){ //If the grid box is within the y range of the array
+                    if(mapX >= 0 && mapX < this.data[mapY].length){ //If the grid box is within the x range of the array
+                        var char = this.data[mapY][mapX]; //Character found at collision point in the map
+                        if(parseInt(char)){ //If its a number then its a wall
+                            hit = {
+                                char: char,
+                                distance: intersection.length(),
+                                vector: intersection,
+                                x: xa,
+                                y: ya
+                            };
+                            break;
+                        }
                     }
                 }
+                intersection.add(hOffset);
             }
-            intersection.add(hOffset);
         }
 
         intersection = vFirstHit;

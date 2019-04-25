@@ -1,3 +1,32 @@
+Start index.html
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Raycaster</title>
+        <script src="index.js"></script>
+        <link rel="stylesheet" type="text/css" href="index.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.1/p5.js"></script>
+    </head>
+    <body>
+        
+    </body>
+</html>
+
+End index.html
+
+Start index.css
+
+.p5Canvas, html, body {
+    overflow: hidden;
+    margin: 0;
+    height: 100%;
+}
+
+End index.css
+
+Start index.js
+
 //Store user input for future use
 var keys=[];
 keyPressed=function(){keys[keyCode] = true;};
@@ -454,3 +483,5 @@ function draw(){
     player.update(); //Update the player
     gameMap.drawMiniMap(); //Draw the minimap
 }
+
+End index.js

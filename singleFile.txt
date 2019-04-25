@@ -195,7 +195,8 @@ var gameMap = {
 
     //Find walls hit by ray cast into the virtual space
     getRayCollision : function(ray){
-        //Note: This algorithm is my implimentation of a digital differential analyzer (DDA). A DDA calculates the intersections of a line and a grid. It is commonly used in graphics the determine which pixels to turn on, because pixels are on a grid
+        //Note: This algorithm is my implimentation of a digital differential analyzer (DDA). A DDA calculates the intersections of a line and a grid
+        //It is commonly used in graphics to draw lines on a grid of pixels
         //I'm using it to find where the rays hit walls, because the walls are generated on a grid
 
         //Ray direction deltas
@@ -373,7 +374,8 @@ var player = {
         }
 
         //Increment the position of the playe and collide with walls
-        //Note: You must increment each axis seperately or players won't be able to move along walls, and other buggy behavior will cause issues
+        //Note: You must increment each axis seperately or players won't be able to move along walls, 
+        //and other buggy behavior will cause issues
         this.pos.x += this.direction.x * this.speed;
         this.collision(this.direction.x * this.speed, 0);
         this.pos.y += this.direction.y * this.speed;
@@ -383,32 +385,49 @@ var player = {
     //Handle rendering
     render : function(){
         //Render the floor gradient
-        for(var y = this.screenHeight * 0.75; y > this.screenHeight / 2; y -= this.scale * 2){ //Increment through the quarter of the screen just bellow the "horizon" (middle of the screen) and fill it with a gradient
-            var color = lerpColor(gameMap.colors.floorEnd, gameMap.colors.floorStart, (y - this.screenHeight / 2) / (this.screenHeight * 0.25)); //Use lerp to get appropriate color for position
+        //Increment through the quarter of the screen just bellow the "horizon" (middle of the screen) and fill it with a gradient
+        for(var y = this.screenHeight * 0.75; y > this.screenHeight / 2; y -= this.scale * 2){
+            //Use lerp to get appropriate color for position
+            var color = lerpColor(
+                gameMap.colors.floorEnd, 
+                gameMap.colors.floorStart, 
+                (y - this.screenHeight / 2) / (this.screenHeight * 0.25)
+            ); 
             fill(color);
             rect(0, Math.round(y), this.screenWidth, -this.scale * 2); //Draw gradient line
         }
 
         //Render the 3d game map
-        for(var x = 0; x < this.screenWidth; x += this.scale){ //Loop through each column of pixels in the screen. Collumn width is defined by this.scale. Scale can be adjusted up to reduce lag
-            var relativeX = -(x - this.screenWidth / 2); //X relative to center of the screen
-            var rayDirection = new Vector(relativeX, this.focalLength); //Direction of the ray from the player through the current column of the projection plane
-            var rayAngle = rayDirection.getAngle() + this.direction.getAngle() - Math.PI / 2; //Ray angle relative to the player
-            rayDirection = new Vector(Math.cos(rayAngle), Math.sin(rayAngle)); //Adjust the direction ray to reflect player angle, also normalize the vector
-            rayDirection.mult(this.renderRange); //Multiply by the rendering range. The gameMap.getRayCollision() method will only check within the length of the ray passed
+        //Loop through each column of pixels in the screen
+        //Collumn width is defined by this.scale. Scale can be adjusted up to reduce lag
+        for(var x = 0; x < this.screenWidth; x += this.scale){
+            //X relative to center of the screen 
+            var relativeX = -(x - this.screenWidth / 2); 
+            //Direction of the ray from the player through the current column of the projection plane
+            var rayDirection = new Vector(relativeX, this.focalLength); 
+            //Ray angle relative to the player
+            var rayAngle = rayDirection.getAngle() + this.direction.getAngle() - Math.PI / 2;
+            //Adjust the direction ray to reflect player angle, also normalize the vector
+            rayDirection = new Vector(Math.cos(rayAngle), Math.sin(rayAngle));
+            //Multiply by the rendering range
+            //The gameMap.getRayCollision() method will only check within the length of the ray passed
+            rayDirection.mult(this.renderRange);
             var ray = new Ray(this.pos, rayDirection); //Generate a ray from the givens
             var rayCollision = gameMap.getRayCollision(ray); //Get the hit data from the ray
             if(rayCollision === null){ //Ray didn't hit anything
                 continue; //Move onto next column
             }
-            var beta = this.direction.getAngle() - rayCollision.vector.getAngle(); //Angle of hit relative to viewing angle
-            var distance = rayCollision.distance * Math.cos(beta); //Distance adjusted to remove fisheye effect due to flat projection plane
-
-            var wallHeight = (1 / distance) * this.focalLength; //Calculate the height of the slice in pixels
+            //Angle of hit relative to viewing angle
+            var beta = this.direction.getAngle() - rayCollision.vector.getAngle();
+            //Distance adjusted to remove fisheye effect due to flat projection plane
+            var distance = rayCollision.distance * Math.cos(beta);
+            //Calculate the height of the slice in pixels
+            var wallHeight = (1 / distance) * this.focalLength;
 
             //Draw the wall slice
             noStroke();
-            var color = this.getColor(gameMap.colors[rayCollision.char], distance, rayCollision.x); //Get color based on distance (luminance fades with distance) and shadow (based on wall orientation)
+            //Get color based on distance (luminance fades with distance) and shadow (based on wall orientation)
+            var color = this.getColor(gameMap.colors[rayCollision.char], distance, rayCollision.x); 
             fill(color);
             rect(x, this.screenHeight / 2 - wallHeight / 2, this.scale, wallHeight);
         }
@@ -428,7 +447,11 @@ var player = {
         }
 
         //Return a color adjusted for shadow and luminance drop off
-        return color(Math.min(c.levels[0] / distance * this.colorMultiplier * shadow, c.levels[0] * shadow), Math.min(c.levels[1] / distance * this.colorMultiplier * shadow, c.levels[1] * shadow), Math.min(c.levels[2] / distance * this.colorMultiplier * shadow, c.levels[2] * shadow));
+        return color(
+            Math.min(c.levels[0] / distance * this.colorMultiplier * shadow, c.levels[0] * shadow), 
+            Math.min(c.levels[1] / distance * this.colorMultiplier * shadow, c.levels[1] * shadow), 
+            Math.min(c.levels[2] / distance * this.colorMultiplier * shadow, c.levels[2] * shadow)
+        );
     },
 
     //Collide the player with walls
@@ -439,7 +462,8 @@ var player = {
                     continue; //Skip it
                 }
 
-                if(this.pos.x > x - this.size && this.pos.x < x + 1 + this.size && this.pos.y > y -this.size && this.pos.y < y + 1 + this.size){ //Is the player inside the wall?
+                //Is the player inside the wall?
+                if(this.pos.x > x - this.size && this.pos.x < x + 1 + this.size && this.pos.y > y -this.size && this.pos.y < y + 1 + this.size){
                     if(dx > 0){ //Player moving right
                         this.pos.x = x - this.size; //Push them out to the left
                     }else if(dx < 0){ //Moving left
@@ -460,7 +484,9 @@ var player = {
     setScreen : function(width, height){
         this.screenWidth = width;
         this.screenHeight = height;
-        this.focalLength = (this.screenWidth / 2) / Math.tan(this.fov / 2); //Focal length is the distance of the player from the projection plane. This is based of the fov angle and the width of the projection plane
+        //Focal length is the distance of the player from the projection plane
+        //This is based of the fov angle and the width of the projection plane
+        this.focalLength = (this.screenWidth / 2) / Math.tan(this.fov / 2);
     }
 }
 
